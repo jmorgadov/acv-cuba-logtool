@@ -14,8 +14,8 @@ function hasBeenDestroyed(event) {
 	primaryObj = event.getElementsByTagName("PrimaryObject")[0];
 	pilotDestroyed = primaryObj.getElementsByTagName("Pilot");
 	if (pilotDestroyed.length > 0) {
-		pilot = pilotDestroyed[0].textContent;
-		pilotInfo[pilot]["destroyed"] += 1;
+		pilot = getPilot(pilotDestroyed[0].textContent);
+		pilot["destroyed"] += 1;
 		return;
 	}
 
@@ -23,8 +23,8 @@ function hasBeenDestroyed(event) {
 	if (secondaryObj.length > 0) {
 		pilot = secondaryObj[0].getElementsByTagName("Pilot");
 		if (pilot.length > 0) {
-			pilot = pilot[0].textContent;
-			pilotInfo[pilot]["objDestroyed"].push(primaryObj.getElementsByTagName("Name")[0].textContent);
+			pilot = getPilot(pilot[0].textContent);
+			pilot["objDestroyed"].push(primaryObj.getElementsByTagName("Name")[0].textContent);
 		}
 	}
 }
@@ -47,6 +47,7 @@ function parseXml(xmlString) {
 	var parser = new DOMParser();
 	var xmlDoc = parser.parseFromString(xmlString, "text/xml");
 	var events = xmlDoc.getElementsByTagName("Event");
+	pilotInfo = new Object();
 	for (var event of events) {
 		var action = event.getElementsByTagName("Action")[0].textContent;
 		var time = event.getElementsByTagName("Time")[0].textContent;
@@ -82,7 +83,7 @@ function addInfoCol(trElem, info) {
 
 function ShowLogs(pilotsInfo) {
 	var pilotsDiv = document.getElementById("pilots");
-	pilotsDiv.textContent = "";
+	pilotsDiv.innerHTML = "";
 	for (pilot in pilotsInfo) {
 		var pilotDiv = document.createElement("tr");
 		pilotDiv.className = "bg-white border-b dark:bg-gray-800 dark:border-gray-700";
