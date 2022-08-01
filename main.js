@@ -4,22 +4,41 @@ function getPilot(pilot) {
 	if (pilotInfo[pilot] == undefined) {
 		pilotInfo[pilot] = new Object();
 		pilotInfo[pilot]["duration"] = 0;
+		pilotInfo[pilot]["flights"] = 0;
 		pilotInfo[pilot]["destroyed"] = 0;
+		pilotInfo[pilot]["crashed"] = 0;
+		pilotInfo[pilot]["hasTakenOff"] = false;
 		pilotInfo[pilot]["objDestroyed"] = [];
 	}
 	return pilotInfo[pilot];
 }
 
+function getPilotFromPrimary(event) {
+	primaryObj = event.getElementsByTagName("PrimaryObject")[0];
+	pilot = primaryObj.getElementsByTagName("Pilot");
+	if (pilot.length > 0) {
+		return getPilot(pilot[0].textContent);
+	}
+	else {
+		return null;
+	}
+}
+
 function hasBeenDestroyed(event) {
 	primaryObj = event.getElementsByTagName("PrimaryObject")[0];
 	pilotDestroyed = primaryObj.getElementsByTagName("Pilot");
-	if (pilotDestroyed.length > 0) {
+	secondaryObj = event.getElementsByTagName("SecondaryObject");
+	if (pilotDestroyed.length > 0 && secondaryObj != null && secondaryObj.length > 0) {
 		pilot = getPilot(pilotDestroyed[0].textContent);
 		pilot["destroyed"] += 1;
+		if (pilot["hasTakenOff"]) {
+			// Not count as crashed
+			pilot["crashed"] -= 1;
+		}
+		pilot["hasTakenOff"] = false;
 		return;
 	}
 
-	secondaryObj = event.getElementsByTagName("SecondaryObject");
 	if (secondaryObj.length > 0) {
 		pilot = secondaryObj[0].getElementsByTagName("Pilot");
 		if (pilot.length > 0) {
@@ -30,17 +49,28 @@ function hasBeenDestroyed(event) {
 }
 
 function hasTakeOff(event, time) {
-	pilot = getPilot(event.getElementsByTagName("PrimaryObject")[0].getElementsByTagName("Pilot")[0].textContent);
+	pilot = getPilotFromPrimary(event);
+	if (pilot == null) {
+		return;
+	}
 	pilot["takeoff"] = time;
+	pilot["hasTakenOff"] = true;
+	pilot["crashed"] += 1;
+	pilot["flights"] += 1;
 }
 
 function hasLanded(event, time) {
 	pilot = getPilot(event.getElementsByTagName("PrimaryObject")[0].getElementsByTagName("Pilot")[0].textContent);
+	if (!pilot["hasTakenOff"]) {
+		return;
+	}
 	var takeoff = pilot["takeoff"];
 	var landing = time;
 	var duration = landing - takeoff;
 	var minutes = duration / 3600;
 	pilot["duration"] += minutes;
+	pilot["crashed"] -= 1;
+	pilot["hasTakenOff"] = false;
 }
 
 function parseXml(xmlString) {
@@ -87,10 +117,11 @@ function ShowLogs(pilotsInfo) {
 	for (pilot in pilotsInfo) {
 		var pilotDiv = document.createElement("tr");
 		pilotDiv.className = "bg-white border-b dark:bg-gray-800 dark:border-gray-700";
-		console.log(pilotDiv.className);
 		addPilotNameCol(pilotDiv, pilot);
 		addInfoCol(pilotDiv, pilotsInfo[pilot]["duration"].toFixed(2).toString());
+		addInfoCol(pilotDiv, pilotsInfo[pilot]["flights"]);
 		addInfoCol(pilotDiv, pilotsInfo[pilot]["destroyed"])
+		addInfoCol(pilotDiv, pilotsInfo[pilot]["crashed"])
 		addInfoCol(pilotDiv, pilotsInfo[pilot]["objDestroyed"].length.toString())
 		pilotsDiv.appendChild(pilotDiv);
 	}
