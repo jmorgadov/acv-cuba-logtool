@@ -1,5 +1,15 @@
 var pilotInfo = new Object();
 
+var pilotsCallsigns = [
+	"VIPER",
+	"Xtreme",
+	"Morga",
+	"SkyHunter",
+	"FARCUBA",
+].sort()
+var idOrder = 0;
+var selectionHistory = new Object();
+
 function getPilot(pilot) {
 	if (pilotInfo[pilot] == undefined) {
 		pilotInfo[pilot] = new Object();
@@ -78,10 +88,10 @@ function parseXml(xmlString) {
 	var xmlDoc = parser.parseFromString(xmlString, "text/xml");
 	var events = xmlDoc.getElementsByTagName("Event");
 	pilotInfo = new Object();
+	selectionHistory = new Object();
 	for (var event of events) {
 		var action = event.getElementsByTagName("Action")[0].textContent;
 		var time = event.getElementsByTagName("Time")[0].textContent;
-		var primary = event.getElementsByTagName("PrimaryObject")[0];
 		if (action == "HasTakenOff") {
 			hasTakeOff(event, time);
 		}
@@ -96,12 +106,59 @@ function parseXml(xmlString) {
 	ShowLogs(pilotInfo);
 }
 
+function fixTable() {
+
+}
+
 
 function addPilotNameCol(trElem, pilot) {
-	var tdElem = document.createElement("td");
-	tdElem.className = "py-4 px-6 font-medium text-gray-900 whitespace-nowrap dark:text-white";
-	tdElem.innerHTML = pilot;
+	var tdElem = document.createElement("input");
+	var list = "list" + pilot;
+	tdElem.className = "py-4 px-6 font-medium bg-gray-0 text-gray-900 whitespace-nowrap dark:text-white";
+	tdElem.value = pilot;
+	tdElem.id = idOrder.toString();
+	idOrder += 1;
+
+	var datalist = document.createElement("datalist")
+	datalist.id = list;
+
+	var firstOp = document.createElement("option")
+	firstOp.value = pilot;
+	firstOp.textContent = pilot;
+	datalist.appendChild(firstOp)
+	selectionHistory[tdElem.id] = pilot;
+
+	for (p of pilotsCallsigns) {
+		if (p != pilot) {
+			var op = document.createElement("option")
+			op.value = p;
+			op.textContent = p;
+			datalist.appendChild(op)
+		}
+	}
+	tdElem.appendChild(datalist);
+	tdElem.setAttribute("list", list);
 	trElem.appendChild(tdElem);
+
+	tdElem.onchange = function(event) {
+		var old = selectionHistory[tdElem.id];
+		var selected = tdElem.value;
+		selectionHistory[tdElem.id] = selected;
+		info = pilotInfo[old];
+		delete pilotInfo[old];
+		if (selected in pilotInfo) {
+			pilotInfo[selected].duration += info.duration;
+			pilotInfo[selected].flights += info.flights;
+			pilotInfo[selected].destroyed += info.destroyed;
+			pilotInfo[selected].crashed += info.crashed;
+			pilotInfo[selected].objDestroyed.push(...info.objDestroyed);
+			pilotInfo[selected].takeoff = Math.max(pilotInfo[selected].takeoff, info.takeoff);
+		}
+		else {
+			pilotInfo[selected] = info;
+		}
+		ShowLogs(pilotInfo);
+	}
 }
 
 function addInfoCol(trElem, info) {

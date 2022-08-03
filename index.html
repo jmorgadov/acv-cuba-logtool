@@ -9,23 +9,41 @@
 </head>
 
 <body class="p-4 text-gray-600 mx-auto w-full md:w-3/4 lg:w-3/5 px-8 md:px-0 mb-8">
-     <img src="logo.jpg" alt="logo" class="w-24 mb-2 mx-auto">
-     <h1 class="text-2xl font-bold text-center">Ala de Combate Virtual Cuba</h1>
-     <h3 class="font-bold text-center mb-8">Log tool</h3>
-		 <label for="file" class="block w-full italic text-gray-400 text-sm mb-2">Selecciona el archivo de logs xml</label>
-    <input class="form-control block w-full px-3 py-1.5 text-base font-normal text-gray-700 bg-white bg-clip-padding border border-solid border-gray-300 rounded transition ease-in-out m-0 focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none" type="file" id="input" xml>
+	<img src="logo.jpg" alt="logo" class="w-24 mb-2 mx-auto">
+	<h1 class="text-2xl font-bold text-center">Ala de Combate Virtual Cuba</h1>
+	<h3 class="font-bold text-center mb-8">Log tool</h3>
+	<label for="file" class="block w-full italic text-gray-400 text-sm mb-2">Selecciona el archivo de logs xml</label>
+	<input
+		class="form-control block w-full px-3 py-1.5 text-base font-normal text-gray-700 bg-white bg-clip-padding border border-solid border-gray-300 rounded transition ease-in-out m-0 focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none"
+		type="file" id="input" xml>
 	<table class="mt-5 w-full text-sm text-left text-gray-500 dark:text-gray-400">
 		<thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
-		<tr>
-			<th scope="col" class="py-3 px-6">Piloto</th>
-			<th scope="col" class="py-3 px-6">Horas</th>
-			<th scope="col" class="py-3 px-6">Vuelos</th>
-			<th scope="col" class="py-3 px-6">Derribado</th>
-			<th scope="col" class="py-3 px-6">Estrellado</th>
-			<th scope="col" class="py-3 px-6">Objetivos destruidos</th>
-		</tr>
+			<tr>
+				<th scope="col" class="py-3 px-6">Piloto</th>
+				<th scope="col" class="py-3 px-6">Horas</th>
+				<th scope="col" class="py-3 px-6">Vuelos</th>
+				<th scope="col" class="py-3 px-6">Derribado</th>
+				<th scope="col" class="py-3 px-6">Estrellado</th>
+				<th scope="col" class="py-3 px-6">Objetivos destruidos</th>
+			</tr>
 		</thead>
 		<tbody id="pilots">
+			<!-- <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700"> -->
+			<!-- 	<!-1- <input list="asd" type="button" -1-> -->
+			<!-- 	<!-1- 	class="py-4 px-6 font-medium text-gray-900 whitespace-nowrap dark:text-white" -1-> -->
+			<!-- 	<!-1- 	id="pilotNameButtonWeasel41"> -1-> -->
+			<!-- 	<select id="asd"> -->
+			<!-- 		<option value="A">asdf</option> -->
+			<!-- 		<option value="B">ethjyu6</option> -->
+			<!-- 		<option value="C">arhrtf</option> -->
+			<!-- 		<option value="D">tyjytf</option> -->
+			<!-- 	</select> -->
+			<!-- 	<td class="py-4 px-6">0.00</td> -->
+			<!-- 	<td class="py-4 px-6">1</td> -->
+			<!-- 	<td class="py-4 px-6">1</td> -->
+			<!-- 	<td class="py-4 px-6">0</td> -->
+			<!-- 	<td class="py-4 px-6">0</td> -->
+			<!-- </tr> -->
 		</tbody>
 	</table>
 	<script type="text/javascript" src="main.js">
