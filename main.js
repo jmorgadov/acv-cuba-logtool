@@ -492,7 +492,7 @@ function parseGeneralLogbook(logbookFile) {
 		saveButton.onclick = function() {
 			wb.xlsx.writeBuffer().then((data) => {
 				const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8' });
-				var name = prompt("Save as:", "report.xlsx");
+				var name = prompt("Save as:", "general_logbook.xlsx");
 				saveAs(blob, name);
 			});
 		};
