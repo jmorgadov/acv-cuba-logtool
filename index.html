@@ -4,6 +4,9 @@
 <head>
 	<title>ACV CUBA LOG TOOL</title>
 	<meta charset="utf-8">
+	<script src="./echarts/dist/echarts.js"></script>
+	<script src="./exceljs/dist/exceljs.min.js"></script>
+	<script src="./file-saver/dist/FileSaver.js"></script>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="tailwind/tailwind.min.css">
 </head>
@@ -16,7 +19,7 @@
 	<input
 		class="form-control block w-full px-3 py-1.5 text-base font-normal text-gray-700 bg-white bg-clip-padding border border-solid border-gray-300 rounded transition ease-in-out m-0 focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none"
 		type="file" id="input" xml>
-	<table class="mt-5 w-full text-sm text-left text-gray-500 dark:text-gray-400">
+	<table class="my-5 w-full text-sm text-left text-gray-500 dark:text-gray-400">
 		<thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
 			<tr>
 				<th scope="col" class="py-3 px-6">Piloto</th>
@@ -28,24 +31,17 @@
 			</tr>
 		</thead>
 		<tbody id="pilots">
-			<!-- <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700"> -->
-			<!-- 	<!-1- <input list="asd" type="button" -1-> -->
-			<!-- 	<!-1- 	class="py-4 px-6 font-medium text-gray-900 whitespace-nowrap dark:text-white" -1-> -->
-			<!-- 	<!-1- 	id="pilotNameButtonWeasel41"> -1-> -->
-			<!-- 	<select id="asd"> -->
-			<!-- 		<option value="A">asdf</option> -->
-			<!-- 		<option value="B">ethjyu6</option> -->
-			<!-- 		<option value="C">arhrtf</option> -->
-			<!-- 		<option value="D">tyjytf</option> -->
-			<!-- 	</select> -->
-			<!-- 	<td class="py-4 px-6">0.00</td> -->
-			<!-- 	<td class="py-4 px-6">1</td> -->
-			<!-- 	<td class="py-4 px-6">1</td> -->
-			<!-- 	<td class="py-4 px-6">0</td> -->
-			<!-- 	<td class="py-4 px-6">0</td> -->
-			<!-- </tr> -->
 		</tbody>
 	</table>
+
+	<label for="generalLogInput" class="block w-full italic text-gray-400 text-sm mb-2">Selecciona el logbook general (excel)</label>
+	<input
+		class="form-control block w-full px-3 py-1.5 text-base font-normal text-gray-700 bg-white bg-clip-padding border border-solid border-gray-300 rounded transition ease-in-out m-0 focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none"
+		type="file" id="generalLogInput">
+	<div id="flight_hours" class="w-full mx-auto h-80 mt-5"></div>
+	<div id="crashed_destroyed" class="w-full mx-auto h-80 mt-5"></div>
+	<div id="obj_dest" class="w-full mx-auto h-80 mt-5"></div>
+	<button id="save" class="w-40 h-20 mx-auto border-5 bg-gray-100 mt-5 text-center" hidden>Guardar log</button>
 	<script type="text/javascript" src="main.js">
 	</script>
 </body>

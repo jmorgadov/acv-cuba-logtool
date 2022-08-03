@@ -6,9 +6,21 @@ var pilotsCallsigns = [
 	"Morga",
 	"SkyHunter",
 	"FARCUBA",
+	"Razor",
 ].sort()
 var idOrder = 0;
 var selectionHistory = new Object();
+var charts = [];
+var tapeLoaded = null;
+var ws;
+
+const labelOption = {
+	show: true,
+	position: 'right',
+	align: 'left',
+	formatter: '{c}',
+	fontSize: 10,
+};
 
 function getPilot(pilot) {
 	if (pilotInfo[pilot] == undefined) {
@@ -106,11 +118,6 @@ function parseXml(xmlString) {
 	ShowLogs(pilotInfo);
 }
 
-function fixTable() {
-
-}
-
-
 function addPilotNameCol(trElem, pilot) {
 	var tdElem = document.createElement("input");
 	var list = "list" + pilot;
@@ -190,6 +197,7 @@ function handleFiles() {
 	const file = this.files[0];
 	if (file) {
 		const reader = new FileReader();
+		tapeLoaded = file;
 		reader.readAsText(file, "UTF-8");
 		reader.onload = (evt) => {
 			parseXml(evt.target.result);
@@ -198,4 +206,296 @@ function handleFiles() {
 			document.getElementById("fileContents").innerHTML = "error reading file";
 		};
 	}
+}
+
+
+// --------------------------------------------------------------------------------
+// GENERAL LOGBOOK
+// --------------------------------------------------------------------------------
+
+const genInputElement = document.getElementById("generalLogInput");
+genInputElement.addEventListener("change", logbookHandleFiles, false);
+function logbookHandleFiles() {
+	const file = this.files[0];
+	if (file) {
+		const reader = new FileReader();
+		reader.readAsArrayBuffer(file, "UTF-8");
+		reader.onload = (evt) => {
+			parseGeneralLogbook(evt.target.result);
+		};
+		reader.onerror = (evt) => {
+			document.getElementById("fileContents").innerHTML = "error reading file";
+		};
+	}
+}
+
+function showPilotFlightHours(info, order) {
+	var chartDom = document.getElementById("flight_hours");
+	var myChart = echarts.init(chartDom);
+	charts.push(myChart);
+	var option;
+
+	var names = [];
+	var flightHours = [];
+	for (pilot of order) {
+		var pilotData = info[pilot];
+		names.push(pilot);
+		flightHours.push(pilotData.duration.toFixed(2));
+	}
+
+	option = {
+		title: {
+			text: 'Horas de vuelo',
+			x: 'center',
+		},
+		tooltip: {
+			trigger: 'axis',
+			axisPointer: {
+				type: 'shadow'
+			}
+		},
+		legend: {},
+		xAxis: {
+			type: 'value',
+		},
+		yAxis: {
+			type: 'category',
+			data: names,
+		},
+		series: [
+			{
+				type: 'bar',
+				label: labelOption,
+				data: flightHours,
+			}
+		]
+	};
+	option && myChart.setOption(option);
+}
+
+function showCrasehsAndDestroyed(info, order) {
+	var chartDom = document.getElementById("crashed_destroyed");
+	chartDom.innerHTML = "";
+	var myChart = echarts.init(chartDom);
+	charts.push(myChart);
+	var option;
+
+	var names = [];
+	var crashes = [];
+	var destroyed = [];
+	for (pilot of order) {
+		var pilotData = info[pilot];
+		names.push(pilot);
+		crashes.push(pilotData.crashed);
+		destroyed.push(pilotData.destroyed);
+	}
+
+	option = {
+		title: {
+			text: 'Crashes y derrivos',
+			x: 'center',
+		},
+		tooltip: {
+			trigger: 'axis',
+			axisPointer: {
+				type: 'shadow'
+			}
+		},
+		legend: {
+			y: 'bottom',
+		},
+		xAxis: {
+			type: 'value',
+		},
+		yAxis: {
+			type: 'category',
+			data: names,
+		},
+		series: [
+			{
+				name: 'Estrellado',
+				type: 'bar',
+				label: labelOption,
+				data: crashes,
+				color: '#dd4444',
+			},
+			{
+				name: 'Derrivado',
+				type: 'bar',
+				label: labelOption,
+				data: destroyed,
+				color: '#ffaa00',
+			}
+		]
+	};
+
+	option && myChart.setOption(option);
+}
+
+
+function showObjDestroyed(info, order) {
+	var chartDom = document.getElementById("obj_dest");
+	chartDom.innerHTML = "";
+	var myChart = echarts.init(chartDom);
+	charts.push(myChart);
+	var option;
+
+	var names = [];
+	var objDest = [];
+	for (pilot of order) {
+		var pilotData = info[pilot];
+		names.push(pilot);
+		objDest.push(pilotData.objDestroyed);
+	}
+
+	option = {
+		title: {
+			text: 'Objetivos destruidos',
+			x: 'center',
+		},
+		tooltip: {
+			trigger: 'axis',
+			axisPointer: {
+				type: 'shadow'
+			}
+		},
+		legend: {},
+		xAxis: {
+			type: 'value',
+		},
+		yAxis: {
+			type: 'category',
+			data: names,
+		},
+		series: [
+			{
+				type: 'bar',
+				label: labelOption,
+				data: objDest,
+				color: '#71c44d',
+			}
+		]
+	};
+	option && myChart.setOption(option);
+}
+
+function parseGeneralLogbook(logbookFile) {
+	// const ExcelJS = require('exceljs');
+	var columnsPerPilot = 5;
+	const wb = new ExcelJS.Workbook();
+	wb.xlsx.load(logbookFile).then(() => {
+		console.log("Logbook loaded");
+		ws = wb.getWorksheet('logbook');
+		const namesRow = ws.getRow(2);
+		const names = [];
+		const pInfo = {};
+		var j = 2;
+		while (namesRow.getCell(j).value) {
+			var name = namesRow.getCell(j).value;
+			names.push(name);
+			pInfo[name] = {
+				duration: 0,
+				flights: 0,
+				destroyed: 0,
+				crashed: 0,
+				objDestroyed: 0,
+				column: j,
+			};
+			j += columnsPerPilot;
+		}
+
+		var lastTapeRow = 3;
+		// get a copy of the row
+		while (ws.getRow(lastTapeRow).getCell(1).text != "") {
+			for (var i = 0; i < names.length * columnsPerPilot; i += 5) {
+				var name = names[i / columnsPerPilot];
+				var col = i + 2;
+				var duration = ws.getRow(lastTapeRow).getCell(col).value;
+				var crashes = ws.getRow(lastTapeRow).getCell(col + 1).value;
+				var destroyed = ws.getRow(lastTapeRow).getCell(col + 2).value;
+				var flights = ws.getRow(lastTapeRow).getCell(col + 3).value;
+				var objDestroyed = ws.getRow(lastTapeRow).getCell(col + 4).value;
+				info = pInfo[names[i / columnsPerPilot]];
+				if (duration != null) {
+					info["duration"] += duration;
+				}
+				if (crashes != null) {
+					info["crashed"] += crashes;
+				}
+				if (destroyed != null) {
+					info["destroyed"] += destroyed;
+				}
+				if (flights != null) {
+					info["flights"] += flights;
+				}
+				if (objDestroyed != null) {
+					info["objDestroyed"] += objDestroyed;
+				}
+			}
+			lastTapeRow += 1;
+		}
+
+		if (tapeLoaded != null) {
+			ws.getRow(lastTapeRow).getCell(1).value = tapeLoaded.name;
+			for (pilot in pilotInfo) {
+				if (pilot in pInfo) {
+					var col = pInfo[pilot].column;
+					ws.getRow(lastTapeRow).getCell(col).value = pilotInfo[pilot].duration;
+					ws.getRow(lastTapeRow).getCell(col + 1).value = pilotInfo[pilot].crashed;
+					ws.getRow(lastTapeRow).getCell(col + 2).value = pilotInfo[pilot].destroyed;
+					ws.getRow(lastTapeRow).getCell(col + 3).value = pilotInfo[pilot].flights;
+					ws.getRow(lastTapeRow).getCell(col + 4).value = pilotInfo[pilot].objDestroyed.length;
+					pInfo[pilot].duration += pilotInfo[pilot].duration;
+					pInfo[pilot].crashed += pilotInfo[pilot].crashed;
+					pInfo[pilot].destroyed += pilotInfo[pilot].destroyed;
+					pInfo[pilot].flights += pilotInfo[pilot].flights;
+					pInfo[pilot].objDestroyed += pilotInfo[pilot].objDestroyed.length;
+				}
+				else {
+					names.push(pilot);
+					var col = j;
+					j += columnsPerPilot;
+					ws.getRow(2).getCell(col).value = pilot;
+					ws.getRow(lastTapeRow).getCell(col).value = pilotInfo[pilot].duration;
+					ws.getRow(lastTapeRow).getCell(col + 1).value = pilotInfo[pilot].crashed;
+					ws.getRow(lastTapeRow).getCell(col + 2).value = pilotInfo[pilot].destroyed;
+					ws.getRow(lastTapeRow).getCell(col + 3).value = pilotInfo[pilot].flights;
+					ws.getRow(lastTapeRow).getCell(col + 4).value = pilotInfo[pilot].objDestroyed.length;
+					pInfo[pilot] = {
+						duration: pilotInfo[pilot].duration,
+						flights: pilotInfo[pilot].flights,
+						destroyed: pilotInfo[pilot].destroyed,
+						crashed: pilotInfo[pilot].crashed,
+						objDestroyed: pilotInfo[pilot].objDestroyed.length,
+						column: col,
+					};
+				}
+			}
+		}
+
+		order = Object.keys(pInfo);
+		order.sort(function(a, b) {
+			return pInfo[a].duration - pInfo[b].duration;
+		});
+
+		for (ch of charts) {
+			ch.dispose();
+		}
+		charts = [];
+
+		showPilotFlightHours(pInfo, order);
+		showCrasehsAndDestroyed(pInfo, order);
+		showObjDestroyed(pInfo, order);
+
+		var saveButton = document.getElementById("save");
+		saveButton.removeAttribute('hidden');
+		saveButton.onclick = function() {
+			wb.xlsx.writeBuffer().then((data) => {
+				const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8' });
+				var name = prompt("Save as:", "report.xlsx");
+				saveAs(blob, name);
+			});
+		};
+
+	})
 }
