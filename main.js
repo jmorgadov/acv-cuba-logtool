@@ -30,7 +30,6 @@ function getPilot(pilot) {
 		pilotInfo[pilot]["destroyed"] = 0;
 		pilotInfo[pilot]["crashed"] = 0;
 		pilotInfo[pilot]["hasTakenOff"] = false;
-		pilotInfo[pilot]["objDestroyed"] = [];
 	}
 	return pilotInfo[pilot];
 }
@@ -61,13 +60,6 @@ function hasBeenDestroyed(event) {
 		return;
 	}
 
-	if (secondaryObj.length > 0) {
-		pilot = secondaryObj[0].getElementsByTagName("Pilot");
-		if (pilot.length > 0) {
-			pilot = getPilot(pilot[0].textContent);
-			pilot["objDestroyed"].push(primaryObj.getElementsByTagName("Name")[0].textContent);
-		}
-	}
 }
 
 function hasTakeOff(event, time) {
@@ -158,7 +150,6 @@ function addPilotNameCol(trElem, pilot) {
 			pilotInfo[selected].flights += info.flights;
 			pilotInfo[selected].destroyed += info.destroyed;
 			pilotInfo[selected].crashed += info.crashed;
-			pilotInfo[selected].objDestroyed.push(...info.objDestroyed);
 			pilotInfo[selected].takeoff = Math.max(pilotInfo[selected].takeoff, info.takeoff);
 		}
 		else {
@@ -186,7 +177,6 @@ function ShowLogs(pilotsInfo) {
 		addInfoCol(pilotDiv, pilotsInfo[pilot]["flights"]);
 		addInfoCol(pilotDiv, pilotsInfo[pilot]["destroyed"])
 		addInfoCol(pilotDiv, pilotsInfo[pilot]["crashed"])
-		addInfoCol(pilotDiv, pilotsInfo[pilot]["objDestroyed"].length.toString())
 		pilotsDiv.appendChild(pilotDiv);
 	}
 }
@@ -333,54 +323,11 @@ function showCrasehsAndDestroyed(info, order) {
 }
 
 
-function showObjDestroyed(info, order) {
-	var chartDom = document.getElementById("obj_dest");
-	chartDom.innerHTML = "";
-	var myChart = echarts.init(chartDom);
-	charts.push(myChart);
-	var option;
-
-	var names = [];
-	var objDest = [];
-	for (pilot of order) {
-		var pilotData = info[pilot];
-		names.push(pilot);
-		objDest.push(pilotData.objDestroyed);
-	}
-
-	option = {
-		title: {
-			text: 'Objetivos destruidos',
-			x: 'center',
-		},
-		tooltip: {
-			trigger: 'axis',
-			axisPointer: {
-				type: 'shadow'
-			}
-		},
-		legend: {},
-		xAxis: {
-			type: 'value',
-		},
-		yAxis: {
-			type: 'category',
-			data: names,
-		},
-		series: [
-			{
-				type: 'bar',
-				label: labelOption,
-				data: objDest,
-				color: '#71c44d',
-			}
-		]
-	};
-	option && myChart.setOption(option);
-}
-
 function parseGeneralLogbook(logbookFile) {
 	// const ExcelJS = require('exceljs');
+	var lastTapeLabel = document.getElementById("last_tape");
+	var tapeErrorLabel = document.getElementById("tape_error");
+	tapeErrorLabel.setAttribute("hidden", true);
 	var columnsPerPilot = 5;
 	const wb = new ExcelJS.Workbook();
 	wb.xlsx.load(logbookFile).then(() => {
@@ -398,15 +345,18 @@ function parseGeneralLogbook(logbookFile) {
 				flights: 0,
 				destroyed: 0,
 				crashed: 0,
-				objDestroyed: 0,
 				column: j,
 			};
 			j += columnsPerPilot;
 		}
 
+		var tapes = [];
+
 		var lastTapeRow = 3;
+		var lastTapeName = ws.getRow(lastTapeRow).getCell(1).text;
 		// get a copy of the row
-		while (ws.getRow(lastTapeRow).getCell(1).text != "") {
+		while (lastTapeName != "") {
+			tapes.push(lastTapeName);
 			for (var i = 0; i < names.length * columnsPerPilot; i += 5) {
 				var name = names[i / columnsPerPilot];
 				var col = i + 2;
@@ -414,7 +364,6 @@ function parseGeneralLogbook(logbookFile) {
 				var crashes = ws.getRow(lastTapeRow).getCell(col + 1).value;
 				var destroyed = ws.getRow(lastTapeRow).getCell(col + 2).value;
 				var flights = ws.getRow(lastTapeRow).getCell(col + 3).value;
-				var objDestroyed = ws.getRow(lastTapeRow).getCell(col + 4).value;
 				info = pInfo[names[i / columnsPerPilot]];
 				if (duration != null) {
 					info["duration"] += duration;
@@ -428,47 +377,52 @@ function parseGeneralLogbook(logbookFile) {
 				if (flights != null) {
 					info["flights"] += flights;
 				}
-				if (objDestroyed != null) {
-					info["objDestroyed"] += objDestroyed;
-				}
 			}
 			lastTapeRow += 1;
+			lastTapeName = ws.getRow(lastTapeRow).getCell(1).text;
 		}
 
+		lastTapeName = tapes[tapes.length - 1];
+		lastTapeLabel.textContent = "Último log guardado: " + lastTapeName;
+		lastTapeLabel.removeAttribute("hidden");
+
 		if (tapeLoaded != null) {
-			ws.getRow(lastTapeRow).getCell(1).value = tapeLoaded.name;
-			for (pilot in pilotInfo) {
-				if (pilot in pInfo) {
-					var col = pInfo[pilot].column;
-					ws.getRow(lastTapeRow).getCell(col).value = pilotInfo[pilot].duration;
-					ws.getRow(lastTapeRow).getCell(col + 1).value = pilotInfo[pilot].crashed;
-					ws.getRow(lastTapeRow).getCell(col + 2).value = pilotInfo[pilot].destroyed;
-					ws.getRow(lastTapeRow).getCell(col + 3).value = pilotInfo[pilot].flights;
-					ws.getRow(lastTapeRow).getCell(col + 4).value = pilotInfo[pilot].objDestroyed.length;
-					pInfo[pilot].duration += pilotInfo[pilot].duration;
-					pInfo[pilot].crashed += pilotInfo[pilot].crashed;
-					pInfo[pilot].destroyed += pilotInfo[pilot].destroyed;
-					pInfo[pilot].flights += pilotInfo[pilot].flights;
-					pInfo[pilot].objDestroyed += pilotInfo[pilot].objDestroyed.length;
-				}
-				else {
-					names.push(pilot);
-					var col = j;
-					j += columnsPerPilot;
-					ws.getRow(2).getCell(col).value = pilot;
-					ws.getRow(lastTapeRow).getCell(col).value = pilotInfo[pilot].duration;
-					ws.getRow(lastTapeRow).getCell(col + 1).value = pilotInfo[pilot].crashed;
-					ws.getRow(lastTapeRow).getCell(col + 2).value = pilotInfo[pilot].destroyed;
-					ws.getRow(lastTapeRow).getCell(col + 3).value = pilotInfo[pilot].flights;
-					ws.getRow(lastTapeRow).getCell(col + 4).value = pilotInfo[pilot].objDestroyed.length;
-					pInfo[pilot] = {
-						duration: pilotInfo[pilot].duration,
-						flights: pilotInfo[pilot].flights,
-						destroyed: pilotInfo[pilot].destroyed,
-						crashed: pilotInfo[pilot].crashed,
-						objDestroyed: pilotInfo[pilot].objDestroyed.length,
-						column: col,
-					};
+			if (tapes.includes(tapeLoaded.name)) {
+				tapeErrorLabel.removeAttribute("hidden");
+				tapeErrorLabel.textContent = "Este log ya fue guardado !!";
+				return;
+			}
+			else {
+				ws.getRow(lastTapeRow).getCell(1).value = tapeLoaded.name;
+				for (pilot in pilotInfo) {
+					if (pilot in pInfo) {
+						var col = pInfo[pilot].column;
+						ws.getRow(lastTapeRow).getCell(col).value = pilotInfo[pilot].duration;
+						ws.getRow(lastTapeRow).getCell(col + 1).value = pilotInfo[pilot].crashed;
+						ws.getRow(lastTapeRow).getCell(col + 2).value = pilotInfo[pilot].destroyed;
+						ws.getRow(lastTapeRow).getCell(col + 3).value = pilotInfo[pilot].flights;
+						pInfo[pilot].duration += pilotInfo[pilot].duration;
+						pInfo[pilot].crashed += pilotInfo[pilot].crashed;
+						pInfo[pilot].destroyed += pilotInfo[pilot].destroyed;
+						pInfo[pilot].flights += pilotInfo[pilot].flights;
+					}
+					else {
+						names.push(pilot);
+						var col = j;
+						j += columnsPerPilot;
+						ws.getRow(2).getCell(col).value = pilot;
+						ws.getRow(lastTapeRow).getCell(col).value = pilotInfo[pilot].duration;
+						ws.getRow(lastTapeRow).getCell(col + 1).value = pilotInfo[pilot].crashed;
+						ws.getRow(lastTapeRow).getCell(col + 2).value = pilotInfo[pilot].destroyed;
+						ws.getRow(lastTapeRow).getCell(col + 3).value = pilotInfo[pilot].flights;
+						pInfo[pilot] = {
+							duration: pilotInfo[pilot].duration,
+							flights: pilotInfo[pilot].flights,
+							destroyed: pilotInfo[pilot].destroyed,
+							crashed: pilotInfo[pilot].crashed,
+							column: col,
+						};
+					}
 				}
 			}
 		}
@@ -485,7 +439,6 @@ function parseGeneralLogbook(logbookFile) {
 
 		showPilotFlightHours(pInfo, order);
 		showCrasehsAndDestroyed(pInfo, order);
-		showObjDestroyed(pInfo, order);
 
 		var saveButton = document.getElementById("save");
 		saveButton.removeAttribute('hidden');
