@@ -7,6 +7,7 @@ var pilotsCallsigns = [
 	"SkyHunter",
 	"FARCUBA",
 	"Razor",
+	"Fenrir",
 ].sort()
 var idOrder = 0;
 var selectionHistory = new Object();
@@ -22,23 +23,31 @@ const labelOption = {
 	fontSize: 10,
 };
 
-function getPilot(pilot) {
-	if (pilotInfo[pilot] == undefined) {
-		pilotInfo[pilot] = new Object();
-		pilotInfo[pilot]["duration"] = 0;
-		pilotInfo[pilot]["flights"] = 0;
-		pilotInfo[pilot]["destroyed"] = 0;
-		pilotInfo[pilot]["crashed"] = 0;
-		pilotInfo[pilot]["hasTakenOff"] = false;
+var numbers = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
+
+function getPilot(pilotID, pilotName) {
+	if (!numbers.includes(pilotName[pilotName.length - 1])) {
+		pilotID = pilotName;
 	}
-	return pilotInfo[pilot];
+
+	if (pilotInfo[pilotID] == undefined) {
+		pilotInfo[pilotID] = new Object();
+		pilotInfo[pilotID]["duration"] = 0;
+		pilotInfo[pilotID]["flights"] = 0;
+		pilotInfo[pilotID]["destroyed"] = 0;
+		pilotInfo[pilotID]["crashed"] = 0;
+		pilotInfo[pilotID]["hasTakenOff"] = false;
+		pilotInfo[pilotID]["name"] = pilotName;
+		pilotInfo[pilotID]["pid"] = pilotID;
+	}
+	return pilotInfo[pilotID];
 }
 
 function getPilotFromPrimary(event) {
 	primaryObj = event.getElementsByTagName("PrimaryObject")[0];
 	pilot = primaryObj.getElementsByTagName("Pilot");
 	if (pilot.length > 0) {
-		return getPilot(pilot[0].textContent);
+		return getPilot(primaryObj.getAttribute("ID"), pilot[0].textContent);
 	}
 	else {
 		return null;
@@ -50,7 +59,7 @@ function hasBeenDestroyed(event) {
 	pilotDestroyed = primaryObj.getElementsByTagName("Pilot");
 	secondaryObj = event.getElementsByTagName("SecondaryObject");
 	if (pilotDestroyed.length > 0 && secondaryObj != null && secondaryObj.length > 0) {
-		pilot = getPilot(pilotDestroyed[0].textContent);
+		pilot = getPilot(primaryObj.getAttribute("ID"), pilotDestroyed[0].textContent);
 		pilot["destroyed"] += 1;
 		if (pilot["hasTakenOff"]) {
 			// Not count as crashed
@@ -74,7 +83,7 @@ function hasTakeOff(event, time) {
 }
 
 function hasLanded(event, time) {
-	pilot = getPilot(event.getElementsByTagName("PrimaryObject")[0].getElementsByTagName("Pilot")[0].textContent);
+	pilot = getPilotFromPrimary(event);
 	if (!pilot["hasTakenOff"]) {
 		return;
 	}
@@ -110,6 +119,16 @@ function parseXml(xmlString) {
 	ShowLogs(pilotInfo);
 }
 
+
+function getPilotByName(pilotName) {
+	for (pilot in pilotInfo) {
+		if (pilotInfo[pilot].name == pilotName) {
+			return pilotInfo[pilot];
+		}
+	}
+	return getPilot(pilotName, pilotName);
+}
+
 function addPilotNameCol(trElem, pilot) {
 	var tdElem = document.createElement("input");
 	var list = "list" + pilot;
@@ -143,17 +162,19 @@ function addPilotNameCol(trElem, pilot) {
 		var old = selectionHistory[tdElem.id];
 		var selected = tdElem.value;
 		selectionHistory[tdElem.id] = selected;
-		info = pilotInfo[old];
-		delete pilotInfo[old];
-		if (selected in pilotInfo) {
-			pilotInfo[selected].duration += info.duration;
-			pilotInfo[selected].flights += info.flights;
-			pilotInfo[selected].destroyed += info.destroyed;
-			pilotInfo[selected].crashed += info.crashed;
-			pilotInfo[selected].takeoff = Math.max(pilotInfo[selected].takeoff, info.takeoff);
+		info = getPilotByName(old);
+		delete pilotInfo[info.pid];
+		selectedId = getPilotByName(selected).pid;
+		if (selectedId in pilotInfo) {
+			newInfo = getPilotByName(selected);
+			newInfo.duration += info.duration;
+			newInfo.flights += info.flights;
+			newInfo.destroyed += info.destroyed;
+			newInfo.crashed += info.crashed;
+			newInfo.takeoff = Math.max(newInfo.takeoff, info.takeoff);
 		}
 		else {
-			pilotInfo[selected] = info;
+			pilotInfo[selectedId] = info;
 		}
 		ShowLogs(pilotInfo);
 	}
@@ -172,11 +193,11 @@ function ShowLogs(pilotsInfo) {
 	for (pilot in pilotsInfo) {
 		var pilotDiv = document.createElement("tr");
 		pilotDiv.className = "bg-white border-b dark:bg-gray-800 dark:border-gray-700";
-		addPilotNameCol(pilotDiv, pilot);
-		addInfoCol(pilotDiv, pilotsInfo[pilot]["duration"].toFixed(2).toString());
-		addInfoCol(pilotDiv, pilotsInfo[pilot]["flights"]);
-		addInfoCol(pilotDiv, pilotsInfo[pilot]["destroyed"])
-		addInfoCol(pilotDiv, pilotsInfo[pilot]["crashed"])
+		addPilotNameCol(pilotDiv, pilotsInfo[pilot].name);
+		addInfoCol(pilotDiv, pilotsInfo[pilot].duration.toFixed(2).toString());
+		addInfoCol(pilotDiv, pilotsInfo[pilot].flights);
+		addInfoCol(pilotDiv, pilotsInfo[pilot].destroyed)
+		addInfoCol(pilotDiv, pilotsInfo[pilot].crashed)
 		pilotsDiv.appendChild(pilotDiv);
 	}
 }
@@ -395,27 +416,28 @@ function parseGeneralLogbook(logbookFile) {
 			else {
 				ws.getRow(lastTapeRow).getCell(1).value = tapeLoaded.name;
 				for (pilot in pilotInfo) {
-					if (pilot in pInfo) {
-						var col = pInfo[pilot].column;
+					var pilotName = pilotInfo[pilot].name;
+					if (pilotName in pInfo) {
+						var col = pInfo[pilotName].column;
 						ws.getRow(lastTapeRow).getCell(col).value = pilotInfo[pilot].duration;
 						ws.getRow(lastTapeRow).getCell(col + 1).value = pilotInfo[pilot].crashed;
 						ws.getRow(lastTapeRow).getCell(col + 2).value = pilotInfo[pilot].destroyed;
 						ws.getRow(lastTapeRow).getCell(col + 3).value = pilotInfo[pilot].flights;
-						pInfo[pilot].duration += pilotInfo[pilot].duration;
-						pInfo[pilot].crashed += pilotInfo[pilot].crashed;
-						pInfo[pilot].destroyed += pilotInfo[pilot].destroyed;
-						pInfo[pilot].flights += pilotInfo[pilot].flights;
+						pInfo[pilotName].duration += pilotInfo[pilot].duration;
+						pInfo[pilotName].crashed += pilotInfo[pilot].crashed;
+						pInfo[pilotName].destroyed += pilotInfo[pilot].destroyed;
+						pInfo[pilotName].flights += pilotInfo[pilot].flights;
 					}
 					else {
-						names.push(pilot);
+						names.push(pilotName);
 						var col = j;
 						j += columnsPerPilot;
-						ws.getRow(2).getCell(col).value = pilot;
+						ws.getRow(2).getCell(col).value = pilotName;
 						ws.getRow(lastTapeRow).getCell(col).value = pilotInfo[pilot].duration;
 						ws.getRow(lastTapeRow).getCell(col + 1).value = pilotInfo[pilot].crashed;
 						ws.getRow(lastTapeRow).getCell(col + 2).value = pilotInfo[pilot].destroyed;
 						ws.getRow(lastTapeRow).getCell(col + 3).value = pilotInfo[pilot].flights;
-						pInfo[pilot] = {
+						pInfo[pilotName] = {
 							duration: pilotInfo[pilot].duration,
 							flights: pilotInfo[pilot].flights,
 							destroyed: pilotInfo[pilot].destroyed,
