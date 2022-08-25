@@ -84,6 +84,9 @@ function hasTakeOff(event, time) {
 
 function hasLanded(event, time) {
 	pilot = getPilotFromPrimary(event);
+	if (pilot == null) {
+		return;
+	}
 	if (!pilot["hasTakenOff"]) {
 		return;
 	}
