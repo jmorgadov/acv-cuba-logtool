@@ -26,10 +26,11 @@ const labelOption = {
 var numbers = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
 
 function getPilot(pilotID, pilotName) {
-	if (!numbers.includes(pilotName[pilotName.length - 1])) {
-		pilotID = pilotName;
-	}
+	// if (!numbers.includes(pilotName[pilotName.length - 1])) {
+	//     pilotID = pilotName;
+	// }
 
+	pilotID = pilotName;
 	if (pilotInfo[pilotID] == undefined) {
 		pilotInfo[pilotID] = new Object();
 		pilotInfo[pilotID]["duration"] = 0;
