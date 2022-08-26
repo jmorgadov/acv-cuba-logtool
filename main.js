@@ -14,6 +14,7 @@ var selectionHistory = new Object();
 var charts = [];
 var tapeLoaded = null;
 var ws;
+var merge = false;
 
 const labelOption = {
 	show: true,
@@ -26,11 +27,14 @@ const labelOption = {
 var numbers = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
 
 function getPilot(pilotID, pilotName) {
-	// if (!numbers.includes(pilotName[pilotName.length - 1])) {
-	//     pilotID = pilotName;
-	// }
-
-	pilotID = pilotName;
+	if (merge) {
+		if (!numbers.includes(pilotName[pilotName.length - 1])) {
+			pilotID = pilotName;
+		}
+	}
+	else {
+		pilotID = pilotName;
+	}
 	if (pilotInfo[pilotID] == undefined) {
 		pilotInfo[pilotID] = new Object();
 		pilotInfo[pilotID]["duration"] = 0;
@@ -223,6 +227,12 @@ function handleFiles() {
 	}
 }
 
+
+const mergeCheck = document.getElementById("merge-check");
+merge = mergeCheck.checked;
+mergeCheck.addEventListener("change", () => {
+	merge = mergeCheck.checked;
+}, false)
 
 // --------------------------------------------------------------------------------
 // GENERAL LOGBOOK
